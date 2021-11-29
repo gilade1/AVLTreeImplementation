@@ -64,11 +64,13 @@ public class AVLTree {
 		}
 
 		boolean notInserted = true;
-
+		
+		//Insertion.
 		while (notInserted) {
 			if (k > node.getKey()) {
 				if (!node.getRight().isRealNode()) {
 					node.setRight(insertedNode);
+					insertedNode.setParent(node);
 					break;
 				}
 				node = node.getRight();
@@ -76,6 +78,7 @@ public class AVLTree {
 			else if(k < node.getHeight()){
 				if (!node.getLeft().isRealNode()) {
 					node.setLeft(insertedNode);
+					insertedNode.setParent(node);
 					break;
 				}
 				node = node.getLeft();
@@ -85,6 +88,7 @@ public class AVLTree {
 			}
 		}
 		
+		//balancing up to root.
 		while (node != null) {
 			reBalanceCount += rebalanceNode(node);
 
@@ -308,7 +312,60 @@ public class AVLTree {
 	 * empty (rank = -1). postcondition: none
 	 */
 	public int join(IAVLNode x, AVLTree t) {
-		return -1;
+		//to ensure t.keys() are lower than our keys.
+		if (this.root.getKey() < t.getRoot().getKey()) {
+			int result = t.join(x, this);
+			this.root = t.root;
+			return result;
+		}
+		
+		
+		IAVLNode leftNode;
+		IAVLNode rightNode;
+		
+		//opposite of lecture - left tree with higher rank
+		if (this.root.getHeight() < t.root.getHeight()) {
+			
+			rightNode = this.root;
+			leftNode = t.root;
+			
+			while(leftNode.getHeight() > rightNode.getHeight()) {
+				leftNode = leftNode.getRight();
+			}
+			x.setParent(leftNode.getParent());
+		}
+		//like in lecture - right tree with higher rank
+		else {
+			leftNode = t.root;
+			rightNode = this.root;
+			
+			while(rightNode.getHeight() > leftNode.getHeight()) {
+				rightNode = rightNode.getLeft();
+			}
+			x.setParent(rightNode.getParent());
+		}
+		
+		
+		//set x left and right
+		x.setLeft(leftNode);
+		leftNode.setParent(x);
+		x.setRight(rightNode);	
+		rightNode.setParent(x);
+		
+		IAVLNode node = x;
+		
+		//rebalance up top root
+		while(node != null) {
+			
+			rebalanceNode(x);
+			
+			//set the new root.
+			if(node.getParent() == null) {
+				this.root = node;
+			}
+		}
+		
+		return Math.abs(this.root.getHeight() - t.getRoot().getHeight());
 	}
 
 	/*
@@ -417,8 +474,18 @@ public class AVLTree {
 			return parent;
 		}
 	}
-
+	
+	private int[] getNodeType(IAVLNode node) {
+		int[] nodeType = new int[] {node.getHeight() - node.getLeft().getHeight(),
+				node.getHeight() - node.getRight().getHeight()};
+		return nodeType;
+	}
+	
 	private int rebalanceNode(IAVLNode node) {
+		int[] nodeType = getNodeType(node);
+		if(nodeType[0] == 0 && nodeType[1] == 1 || nodeType[1] == 0 && nodeType[0]) {
+			//promote
+		}
 		int reBalanceCount = 0;
 		reBalanceCount += setHeight(node);
 		int[] rotatingCount = new int [1];
