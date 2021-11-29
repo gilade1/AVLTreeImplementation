@@ -403,7 +403,6 @@ public class AVLTree {
 	}
 
 	private IAVLNode getSuccessor(IAVLNode node) {
-		int key = node.getKey();
 		if (node.getRight() != null && node.getRight().isRealNode()) {
 			node = node.getRight();
 			while (node.getLeft() != null && node.getLeft().isRealNode()) {
@@ -420,7 +419,7 @@ public class AVLTree {
 		return null;
 	}
 
-	private IAVLNode rotateLeft(IAVLNode root, int[] rotatingCount) {
+	private IAVLNode rotateLeft(IAVLNode root) {
 		IAVLNode newRoot = root.getRight();
 		newRoot.setParent(root.getParent());
 		root.setParent(newRoot);
@@ -542,7 +541,7 @@ public class AVLTree {
 				node.setHeight(node.getHeight() - 1);
 				node.getRight().setHeight(node.getRight().getHeight() - 1);
 				//set current node as the root of the balanced subtree.
-				node = rotateLeft(node, null);
+				node = rotateLeft(node);
 				//promoting
 				node.setHeight(node.getHeight() + 1);
 				return 5;
@@ -552,7 +551,7 @@ public class AVLTree {
 			 * special opposite JOIN case:
 			 */
 			if(sonType[0] == 1 && sonType[1] == 1) {
-				node = rotateLeft(node, sonType);
+				node = rotateLeft(node);
 				node.setHeight(node.getHeight() + 1);
 				return 2;
 			}
@@ -560,22 +559,12 @@ public class AVLTree {
 			 * opposite case B:
 			 */
 			node.setHeight(node.getHeight() - 1);
-			node = rotateLeft(node, null);
+			node = rotateLeft(node);
 			return 2;
 		}
 		return 0;
 	}
 	
-	//return 1 if promoted/demoted.
-	private int setHeight(IAVLNode node) {
-		int newHeight = Math.max(node.getLeft().getHeight(), root.getRight().getHeight()) + 1;
-		if (newHeight != node.getHeight()) {
-			node.setHeight(newHeight);
-			return 1;
-		}
-		
-		return 0;
-	}
 	
 	private int sizeRecursive(IAVLNode node) {
 		if (!node.isRealNode()) {
