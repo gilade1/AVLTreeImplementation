@@ -422,40 +422,32 @@ public class AVLTree {
 
 	private IAVLNode rotateLeft(IAVLNode root, int[] rotatingCount) {
 		IAVLNode newRoot = root.getRight();
-		IAVLNode oldRootRightTree = newRoot.getLeft();
+		newRoot.setParent(root.getParent());
+		root.setParent(newRoot);
+		
+		IAVLNode oldRootRightChild = newRoot.getLeft();
 
 		// Rotation
 		newRoot.setLeft(root);
-		root.setRight(oldRootRightTree);
-
-		// Update heights
-		root.setHeight(Math.max(root.getLeft().getHeight(), root.getRight().getHeight()) + 1);
-		newRoot.setHeight(Math.max(newRoot.getLeft().getHeight(), newRoot.getRight().getHeight()) + 1);
-		
-		rotatingCount[0] += setHeight(root) + setHeight(newRoot);
+		root.setRight(oldRootRightChild);
+		oldRootRightChild.setParent(root);
 
 		return newRoot;
 	}
 
-	private IAVLNode rotateRight(IAVLNode root, int[] rotatingCount) {
+	private IAVLNode rotateRight(IAVLNode root) {
 		IAVLNode newRoot = root.getLeft();
-		IAVLNode oldRootLeftTree = newRoot.getRight();
+		newRoot.setParent(root.getParent());
+		root.setParent(newRoot);
+		
+		IAVLNode oldRootLeftChild = newRoot.getRight();
 
 		// Rotation
 		newRoot.setRight(root);
-		root.setLeft(oldRootLeftTree);
-
-		// Update heights
-		root.setHeight(Math.max(root.getLeft().getHeight(), root.getRight().getHeight()) + 1);
-		newRoot.setHeight(Math.max(newRoot.getLeft().getHeight(), newRoot.getRight().getHeight()) + 1);
-		
-		rotatingCount[0] += setHeight(root) + setHeight(newRoot);
+		root.setLeft(oldRootLeftChild);
+		oldRootLeftChild.setParent(root);
 		
 		return newRoot;
-	}
-
-	private int getBalance(IAVLNode node) {
-		return node.getLeft().getHeight() - node.getRight().getHeight();
 	}
 
 	private IAVLNode deleteNodeEasyCase(IAVLNode node) {
@@ -481,38 +473,97 @@ public class AVLTree {
 		return nodeType;
 	}
 	
+	
 	private int rebalanceNode(IAVLNode node) {
 		int[] nodeType = getNodeType(node);
-		if(nodeType[0] == 0 && nodeType[1] == 1 || nodeType[1] == 0 && nodeType[0]) {
-			//promote
+		/*
+		 * node is 0,1 or 1,0 (case A):
+		 * -promote node. 
+		 */
+		if(nodeType[0] == 0 && nodeType[1] == 1 || 
+		   nodeType[0] == 1 && nodeType[1] == 0 ) {
+			node.setHeight(node.getHeight() + 1);
+			return 1;
+		} 
+		/*
+		 * node is 0,2:
+		 */
+		if(nodeType[0] == 0 && nodeType[1] == 2) {
+			int[] sonType = getNodeType(node.getLeft());
+			/*
+			 * (case C):
+			 * -rotate son left.
+			 * -rotate node right.
+			 * -demote node & son.
+			 * -promote right of son.
+			 */
+			if(sonType[0] == 2 && sonType[1] == 1) {
+				rotateLeft(node.getLeft());
+				//demoting.
+				node.setHeight(node.getHeight() - 1);
+				node.getLeft().setHeight(node.getLeft().getHeight() - 1);
+				//set current node as the root of the balanced subtree.
+				node = rotateRight(node);
+				//promoting
+				node.setHeight(node.getHeight() + 1);
+				return 5;
+			}
+			
+			/*
+			 * special JOIN case:
+			 * -rotate right.
+			 * promote son.
+			 */
+			if(sonType[0] == 1 && sonType[1] == 1) {
+				node = rotateRight(node);
+				node.setHeight(node.getHeight() + 1);
+				return 2;
+			}
+			/*
+			 * case B:
+			 * -rotate right.
+			 * -demote node.
+			 */
+			node.setHeight(node.getHeight() - 1);
+			node = rotateRight(node);
+			return 2;
 		}
-		int reBalanceCount = 0;
-		reBalanceCount += setHeight(node);
-		int[] rotatingCount = new int [1];
-
-		int balance = getBalance(node);
-		// left is lower than right.
-		if (balance < -1) {
-			// checks if case 2 or 3
-			if (node.getRight().getRight().getHeight() <= node.getRight().getLeft().getHeight()) {
-				node = rotateLeft(node, rotatingCount);
+		/*
+		 * node is 2,0:
+		 */
+		if(nodeType[0] == 2 && nodeType[1] == 0) {
+			int[] sonType = getNodeType(node.getRight());
+			/*
+			 * opposite case C:
+			 */
+			if(sonType[0] == 1 && sonType[1] == 2) {
+				rotateRight(node.getRight());
+				//demoting.
+				node.setHeight(node.getHeight() - 1);
+				node.getRight().setHeight(node.getRight().getHeight() - 1);
+				//set current node as the root of the balanced subtree.
+				node = rotateLeft(node, null);
+				//promoting
+				node.setHeight(node.getHeight() + 1);
+				return 5;
 			}
-			// case 4
-			else {
-				node.setRight(rotateRight(node.getRight(), rotatingCount));
-				node = rotateLeft(node, rotatingCount);
+			
+			/*
+			 * special opposite JOIN case:
+			 */
+			if(sonType[0] == 1 && sonType[1] == 1) {
+				node = rotateLeft(node, sonType);
+				node.setHeight(node.getHeight() + 1);
+				return 2;
 			}
-		} // same for the other side
-		else if (balance > 1) {
-			if (node.getLeft().getLeft().getHeight() >= node.getLeft().getRight().getHeight()) {
-				node = rotateRight(node, rotatingCount);
-			} else {
-				node.setLeft(rotateLeft(node.getLeft(), rotatingCount));
-				node = rotateRight(node, rotatingCount);
-			}
+			/*
+			 * opposite case B:
+			 */
+			node.setHeight(node.getHeight() - 1);
+			node = rotateLeft(node, null);
+			return 2;
 		}
-
-		return reBalanceCount + rotatingCount[0];
+		return 0;
 	}
 	
 	//return 1 if promoted/demoted.
